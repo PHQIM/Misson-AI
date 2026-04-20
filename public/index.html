@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>전도 피드백 AI</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f5f4f0;
+    min-height: 100vh;
+    padding: 2rem 1rem;
+    color: #1a1a18;
+  }
+  .container { max-width: 680px; margin: 0 auto; }
+
+  .header { margin-bottom: 1.5rem; }
+  .header h1 { font-size: 22px; font-weight: 500; margin-bottom: 4px; }
+  .header p { font-size: 14px; color: #5f5e5a; }
+
+  .card {
+    background: #fff;
+    border: 0.5px solid #d3d1c7;
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+  }
+  .label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #5f5e5a;
+    margin-bottom: 8px;
+    display: block;
+  }
+  .type-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 1.25rem;
+  }
+  .type-btn {
+    padding: 9px 4px;
+    border: 0.5px solid #d3d1c7;
+    border-radius: 8px;
+    background: #fff;
+    color: #5f5e5a;
+    font-size: 13px;
+    cursor: pointer;
+    text-align: center;
+    transition: all .15s;
+  }
+  .type-btn:hover { background: #f5f4f0; }
+  .type-btn.active {
+    border-color: #534AB7;
+    background: #EEEDFE;
+    color: #3C3489;
+    font-weight: 500;
+  }
+  textarea {
+    width: 100%;
+    min-height: 130px;
+    resize: vertical;
+    font-family: inherit;
+    font-size: 14px;
+    color: #1a1a18;
+    background: #fff;
+    border: 0.5px solid #d3d1c7;
+    border-radius: 8px;
+    padding: 10px 12px;
+    line-height: 1.65;
+    outline: none;
+    transition: border-color .15s;
+  }
+  textarea:focus { border-color: #534AB7; }
+  .char-count {
+    font-size: 12px;
+    color: #b4b2a9;
+    text-align: right;
+    margin-top: 4px;
+    margin-bottom: 1rem;
+  }
+  .submit-btn {
+    width: 100%;
+    padding: 11px;
+    background: #534AB7;
+    color: #EEEDFE;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity .15s;
+  }
+  .submit-btn:hover { opacity: .88; }
+  .submit-btn:disabled { opacity: .4; cursor: not-allowed; }
+  .error-msg {
+    display: none;
+    color: #a32d2d;
+    font-size: 13px;
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: #fcebeb;
+    border-radius: 8px;
+  }
+  .loading {
+    display: none;
+    text-align: center;
+    padding: 2.5rem 1rem;
+    color: #5f5e5a;
+    font-size: 14px;
+  }
+  .loading.visible { display: block; }
+  .dot { animation: blink 1.2s infinite; }
+  .dot:nth-child(2) { animation-delay: .2s; }
+  .dot:nth-child(3) { animation-delay: .4s; }
+  @keyframes blink { 0%,80%,100%{opacity:.2} 40%{opacity:1} }
+  .result-section { display: none; }
+  .result-section.visible { display: block; }
+  .result-card {
+    background: #fff;
+    border: 0.5px solid #d3d1c7;
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: .75rem;
+  }
+  .result-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 20px;
+    display: inline-block;
+    margin-bottom: .75rem;
+  }
+  .label-summary  { background: #E1F5EE; color: #0F6E56; }
+  .label-feedback { background: #EEEDFE; color: #534AB7; }
+  .label-alt      { background: #FAEEDA; color: #854F0B; }
+  .result-body {
+    font-size: 14px;
+    color: #1a1a18;
+    line-height: 1.8;
+    white-space: pre-wrap;
+  }
+  .alt-item {
+    border: 0.5px solid #d3d1c7;
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+  }
+  .alt-item:last-child { margin-bottom: 0; }
+  .alt-text { font-size: 14px; font-weight: 500; color: #1a1a18; margin-bottom: 4px; }
+  .alt-tip  { font-size: 12px; color: #5f5e5a; line-height: 1.5; }
+  .retry-btn {
+    margin-top: 1rem;
+    padding: 9px 18px;
+    border: 0.5px solid #d3d1c7;
+    border-radius: 8px;
+    background: #fff;
+    color: #5f5e5a;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .retry-btn:hover { background: #f5f4f0; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>전도 피드백 AI</h1>
+    <p>전도 대화나 상황을 입력하면 멘토처럼 피드백해드려요</p>
+  </div>
+
+  <div class="card" id="input-card">
+    <span class="label">상황 유형</span>
+    <div class="type-grid">
+      <button class="type-btn active" data-type="길거리/노방">길거리 / 노방</button>
+      <button class="type-btn" data-type="관계 전도">관계 전도</button>
+      <button class="type-btn" data-type="온라인/SNS">온라인 / SNS</button>
+      <button class="type-btn" data-type="캠퍼스">캠퍼스</button>
+      <button class="type-btn" data-type="직장">직장</button>
+      <button class="type-btn" data-type="기타">기타</button>
+    </div>
+
+    <span class="label">전도 내용 또는 상황 설명</span>
+    <textarea id="user-input" placeholder="예) 오늘 친구에게 복음을 전했는데, 처음엔 관심을 보이다가 '나는 종교가 필요없어'라고 했어요. 저는 '한번만 교회 와봐'라고 했고 친구는 불편해했어요.
+
+또는 대화 내용을 그대로 붙여넣기 해도 됩니다."></textarea>
+    <div class="char-count"><span id="char-num">0</span>자</div>
+
+    <button class="submit-btn" id="submit-btn" onclick="getFeedback()">피드백 받기</button>
+    <div class="error-msg" id="error-msg"></div>
+  </div>
+
+  <div class="loading" id="loading">
+    <p style="margin-bottom: 8px;">멘토가 피드백을 작성하고 있어요<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></p>
+    <p style="font-size: 12px; color: #888780;">보통 5~15초 정도 걸려요</p>
+  </div>
+
+  <div class="result-section" id="result-section">
+    <div class="result-card">
+      <span class="result-label label-summary">현황 요약</span>
+      <div class="result-body" id="out-summary"></div>
+    </div>
+    <div class="result-card">
+      <span class="result-label label-feedback">멘토 피드백</span>
+      <div class="result-body" id="out-feedback"></div>
+    </div>
+    <div class="result-card">
+      <span class="result-label label-alt">대안 제안</span>
+      <div id="out-alt"></div>
+    </div>
+    <button class="retry-btn" onclick="resetForm()">↩ 다시 입력하기</button>
+  </div>
+
+</div>
+<script>
+  let selectedType = '길거리/노방';
+
+  document.querySelectorAll('.type-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedType = btn.dataset.type;
+    });
+  });
+
+  document.getElementById('user-input').addEventListener('input', function () {
+    document.getElementById('char-num').textContent = this.value.length;
+  });
+
+  async function getFeedback() {
+    const input = document.getElementById('user-input').value.trim();
+    const errorMsg = document.getElementById('error-msg');
+    errorMsg.style.display = 'none';
+
+    if (!input) {
+      errorMsg.textContent = '전도 내용 또는 상황을 입력해주세요.';
+      errorMsg.style.display = 'block';
+      document.getElementById('user-input').focus();
+      return;
+    }
+
+    const btn = document.getElementById('submit-btn');
+    const loading = document.getElementById('loading');
+    const resultSection = document.getElementById('result-section');
+
+    btn.disabled = true;
+    resultSection.classList.remove('visible');
+    loading.classList.add('visible');
+
+    try {
+      const res = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: selectedType, content: input })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || '서버 오류가 발생했어요.');
+
+      document.getElementById('out-summary').textContent = data.summary;
+      document.getElementById('out-feedback').textContent = data.feedback;
+
+      const altContainer = document.getElementById('out-alt');
+      altContainer.innerHTML = '';
+      data.alternatives.forEach(alt => {
+        const div = document.createElement('div');
+        div.className = 'alt-item';
+        div.innerHTML = `<div class="alt-text">"${alt.text}"</div><div class="alt-tip">${alt.tip}</div>`;
+        altContainer.appendChild(div);
+      });
+
+      loading.classList.remove('visible');
+      resultSection.classList.add('visible');
+      resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    } catch (e) {
+      loading.classList.remove('visible');
+      errorMsg.textContent = '오류: ' + (e.message || '잠시 후 다시 시도해주세요.');
+      errorMsg.style.display = 'block';
+      btn.disabled = false;
+    }
+  }
+
+  function resetForm() {
+    document.getElementById('result-section').classList.remove('visible');
+    document.getElementById('user-input').value = '';
+    document.getElementById('char-num').textContent = '0';
+    document.getElementById('submit-btn').disabled = false;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
+</body>
+</html>
